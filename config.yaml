@@ -5,19 +5,20 @@ api:
   # 文本生成配置
   text:
     provider: "siliconflow"  # openai / anthropic / siliconflow
+    # SiliconFlow / OpenAI兼容接口 → 使用环境变量: OPENAI_API_KEY
+    # Anthropic接口 → 使用环境变量: ANTHROPIC_API_KEY
     base_url: "https://api.siliconFlow.cn/v1"
     model: "deepseek-ai/DeepSeek-V3.2"
     timeout: 120
-  
+
   # 图像/VL分析配置
   vl:
     provider: "siliconflow"  # openai / anthropic / siliconflow
+    # SiliconFlow / OpenAI兼容接口 → 使用环境变量: OPENAI_API_KEY
+    # Anthropic接口 → 使用环境变量: ANTHROPIC_API_KEY
     base_url: "https://api.siliconFlow.cn/v1"
     model: "Qwen/Qwen2-VL-7B-Instruct"
     timeout: 120
-  
-  # API密钥 (建议使用环境变量覆盖)
-  api_key: ""
 
 # arXiv配置
 arxiv:
