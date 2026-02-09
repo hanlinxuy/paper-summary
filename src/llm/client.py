@@ -6,11 +6,10 @@ from pathlib import Path
 from typing import Optional, Union
 
 import requests
-from jinja2 import Template
+from jinja2 import Environment, FileSystemLoader, Template
 from tenacity import retry, stop_after_attempt, wait_exponential
 
 from ..config import get_config
-from .prompt import ACADEMIC_SUMMARY_PROMPT
 
 
 @dataclass
@@ -18,6 +17,15 @@ class LLMResponse:
     content: str
     model: str
     usage: dict = field(default_factory=dict)
+
+
+def _get_template_env() -> Environment:
+    """获取Jinja2模板环境（从templates/目录加载）"""
+    config = get_config()
+    templates_dir = Path(config.paths.templates_dir).expanduser().resolve()
+    return Environment(
+        loader=FileSystemLoader(str(templates_dir)), keep_trailing_newline=True
+    )
 
 
 class LLMClient:
@@ -101,6 +109,12 @@ class LLMClient:
 
         return LLMResponse(content=content, model=text_config.model, usage=usage)
 
+    def _render_template(self, template_name: str, **kwargs) -> str:
+        """渲染模板"""
+        env = _get_template_env()
+        template = env.get_template(template_name)
+        return template.render(**kwargs)
+
     def generate_academic_summary(
         self,
         paper_id: str,
@@ -111,9 +125,86 @@ class LLMClient:
         local_comment: str = "",
         pdf_summary: str = "",
     ) -> str:
-        """生成学术摘要"""
-        template = Template(ACADEMIC_SUMMARY_PROMPT)
-        prompt = template.render(
+        """生成学术摘要 - 支持多种生成模式"""
+        mode = self.config.summary.mode
+        pdf_enhance = self.config.summary.pdf_enhance_enabled
+
+        # 轻量模式：只使用Kimi摘要，不请求PDF
+        if mode == "lightweight":
+            template_name = "lightweight_summary.md.j2"
+            prompt = self._render_template(
+                template_name,
+                paper_id=paper_id,
+                title=title,
+                authors=authors,
+                kimi_summary=kimi_summary or "未提供",
+            )
+            response = self.chat(
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.3,
+                max_tokens=1024,
+            )
+            return response.content
+
+        # 两阶段模式：第一阶段轻量生成，第二阶段PDF增强
+        if mode == "two_phase" and pdf_enhance:
+            # Phase 1: 只用Kimi摘要生成框架
+            phase1_template = self.config.summary.template.replace(
+                ".md.j2", "_phase1.md.j2"
+            )
+            try:
+                phase1_prompt = self._render_template(
+                    phase1_template,
+                    paper_id=paper_id,
+                    title=title,
+                    authors=authors,
+                    kimi_summary=kimi_summary or "未提供",
+                )
+            except Exception:
+                # 如果没有phase1模板，回退到轻量模式
+                phase1_template = "lightweight_summary.md.j2"
+                phase1_prompt = self._render_template(
+                    phase1_template,
+                    paper_id=paper_id,
+                    title=title,
+                    authors=authors,
+                    kimi_summary=kimi_summary or "未提供",
+                )
+
+            phase1_result = self.chat(
+                messages=[{"role": "user", "content": phase1_prompt}],
+                temperature=0.3,
+                max_tokens=1024,
+            )
+
+            # Phase 2: 用PDF内容增强
+            phase2_template = self.config.summary.template.replace(
+                ".md.j2", "_phase2.md.j2"
+            )
+            try:
+                phase2_prompt = self._render_template(
+                    phase2_template,
+                    paper_id=paper_id,
+                    title=title,
+                    authors=authors,
+                    phase1_output=phase1_result.content,
+                    pdf_summary=pdf_summary or "",
+                )
+            except Exception:
+                # 如果没有phase2模板，直接返回phase1结果
+                return phase1_result.content
+
+            phase2_result = self.chat(
+                messages=[{"role": "user", "content": phase2_prompt}],
+                temperature=0.3,
+                max_tokens=2048,
+            )
+            return phase2_result.content
+
+        # 默认/完整模式：单次生成（原有行为）
+        template_name = self.config.summary.template
+        prompt = self._render_template(
+            template_name,
             paper_id=paper_id,
             title=title,
             authors=authors,

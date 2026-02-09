@@ -68,6 +68,10 @@ class SummarySettings(BaseModel):
     temperature: float = 0.3
     max_tokens: int = 4096
     max_retries: int = 3
+    # 生成模式: full / lightweight / two_phase
+    mode: str = "full"
+    # 是否在two_phase模式下启用PDF增强
+    pdf_enhance_enabled: bool = True
 
 
 class LoggingSettings(BaseModel):

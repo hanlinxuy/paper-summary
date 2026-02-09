@@ -49,8 +49,21 @@ pdf:
 
 # 摘要生成配置
 summary:
-  # Prompt模板文件
+  # Prompt模板文件 (templates/目录下的文件名)
+  # 可选模板:
+  #   - academic_summary.md.j2: 传统学术摘要格式 (研究背景 → 方法 → 贡献与结果 → 结论)
+  #   - structured_analysis.md.j2: 结构化分析格式 (包含可信度、重要性、端侧价值等评估维度)
   template: "academic_summary.md.j2"
+
+  # 生成模式
+  #   - full: 完整模式，使用Kimi摘要+PDF内容生成详细摘要（默认）
+  #   - lightweight: 轻量模式，只使用Kimi摘要生成快速摘要
+  #   - two_phase: 两阶段模式，先用Kimi摘要生成框架，再用PDF内容增强
+  mode: "two_phase"
+
+  # PDF增强配置 (仅two_phase模式生效)
+  # 是否在第二阶段才请求PDF内容（避免一次性发送过长上下文）
+  pdf_enhance_enabled: true
   # 温度参数
   temperature: 0.3
   # 最大Token数
