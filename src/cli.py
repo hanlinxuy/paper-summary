@@ -105,18 +105,25 @@ def batch(
 def config_show():
     """显示当前配置"""
     config = get_config()
+
     typer.secho("当前配置:", fg=typer.colors.CYAN)
 
     typer.secho("\n文本生成:", fg=typer.colors.YELLOW)
     typer.echo(f"  Provider: {config.api.text.provider}")
     typer.echo(f"  Model: {config.api.text.model}")
+    text_env = f"{config.api.text.provider.upper()}_API_KEY"
+    typer.echo(f"  环境变量: {text_env}")
 
     typer.secho("\n图像/VL分析:", fg=typer.colors.YELLOW)
     typer.echo(f"  Provider: {config.api.vl.provider}")
     typer.echo(f"  Model: {config.api.vl.model}")
+    vl_env = f"{config.api.vl.provider.upper()}_API_KEY"
+    typer.echo(f"  环境变量: {vl_env}")
 
-    typer.echo(f"\nAPI密钥: {'✓ 已配置' if config.api.api_key else '✗ 未配置'}")
-    typer.echo(f"缓存目录: {config.paths.cache_dir}")
+    typer.secho("\nAPI密钥:", fg=typer.colors.YELLOW)
+    typer.echo(f"  {'✓ 已配置' if config.api.api_key else '✗ 未配置'}")
+
+    typer.echo(f"  缓存目录: {config.paths.cache_dir}")
     typer.echo(f"PDF目录: {config.paths.pdf_dir}")
     typer.echo(f"摘要目录: {config.paths.summaries_dir}")
 

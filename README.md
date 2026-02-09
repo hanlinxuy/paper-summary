@@ -21,17 +21,17 @@ uv pip install -e .
 ```bash
 cp .env.example .env
 # 编辑 .env，填入 API Key
-
-# SiliconFlow / OpenAI 兼容接口:
-OPENAI_API_KEY=sk-xxx
-
-# 或 Anthropic 接口:
-# ANTHROPIC_API_KEY=sk-ant-xxx
 ```
 
-**config.yaml 中的 provider 选择对应的环境变量：**
-- `openai` / `siliconflow` → 使用 `OPENAI_API_KEY`
-- `anthropic` → 使用 `ANTHROPIC_API_KEY`
+**环境变量命名规则：** `{PROVIDER}_API_KEY`
+
+根据 `config.yaml` 中的 `provider` 设置对应的环境变量：
+
+| provider | 环境变量 |
+|----------|---------|
+| `siliconflow` | `SILICONFLOW_API_KEY` |
+| `openai` | `OPENAI_API_KEY` |
+| `anthropic` | `ANTHROPIC_API_KEY` |
 
 ## 使用方法
 

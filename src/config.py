@@ -102,10 +102,19 @@ def load_config(config_path: Optional[Path] = None) -> Config:
 
     config = Config(**config_data)
 
-    if os.getenv("OPENAI_API_KEY"):
-        config.api.api_key = os.getenv("OPENAI_API_KEY")
-    elif os.getenv("ANTHROPIC_API_KEY"):
-        config.api.api_key = os.getenv("ANTHROPIC_API_KEY")
+    # 根据 provider 自动查找环境变量: {PROVIDER}_API_KEY
+    def get_api_key(provider: str) -> Optional[str]:
+        env_key = f"{provider.upper()}_API_KEY"
+        return os.getenv(env_key)
+
+    # 优先从环境变量获取 API key
+    text_key = get_api_key(config.api.text.provider)
+    if text_key:
+        config.api.api_key = text_key
+    else:
+        vl_key = get_api_key(config.api.vl.provider)
+        if vl_key:
+            config.api.api_key = vl_key
 
     return config
 
