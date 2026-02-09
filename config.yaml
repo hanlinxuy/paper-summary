@@ -53,7 +53,7 @@ summary:
   # 可选模板:
   #   - academic_summary.md.j2: 传统学术摘要格式 (研究背景 → 方法 → 贡献与结果 → 结论)
   #   - structured_analysis.md.j2: 结构化分析格式 (包含可信度、重要性、端侧价值等评估维度)
-  template: "academic_summary.md.j2"
+  template: "structured_analysis.md.j2"
 
   # 生成模式
   #   - full: 完整模式，使用Kimi摘要+PDF内容生成详细摘要（默认）
