@@ -73,6 +73,7 @@ summary:
 | `academic_summary.md.j2` | 传统学术摘要（研究背景 → 方法 → 贡献与结果 → 结论） |
 | `structured_analysis.md.j2` | 结构化分析（可信度、重要性、端侧价值评估） |
 | `lightweight_summary.md.j2` | 极速摘要（150字以内，极简输出） |
+| `ppt_slide.md.j2` | PPT Slide（1-2页精简演示稿，左文右图布局） |
 
 ### 两阶段模式
 

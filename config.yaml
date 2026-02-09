@@ -53,6 +53,7 @@ summary:
   # 可选模板:
   #   - academic_summary.md.j2: 传统学术摘要格式 (研究背景 → 方法 → 贡献与结果 → 结论)
   #   - structured_analysis.md.j2: 结构化分析格式 (包含可信度、重要性、端侧价值等评估维度)
+  #   - ppt_slide.md.j2: PPT Slide格式 (1-2页精简演示稿，左文右图布局)
   template: "structured_analysis.md.j2"
 
   # 生成模式
