@@ -4,60 +4,89 @@
 
 ## 功能特性
 
-- 自动获取 arXiv 论文元数据和 PDF
-- 从 papers.cool 提取 Kimi 生成的摘要
-- 支持本地 Markdown 评论注入
-- 基于 LLM 生成结构化中文摘要
-- 支持 OpenAI、Anthropic 和 SiliconFlow API 配置
+- **混合 API 支持**：文本和 VL 模型可分别配置不同服务商
+- **分段摘要生成**：支持轻量模式（快速）和两阶段模式（详细）
+- **模板可配置**：外置 Jinja2 模板，支持自定义
+- **自动获取**：arXiv 元数据 + papers.cool Kimi 摘要
+- **本地评论**：支持注入自定义评论
 
 ## 安装
 
 ```bash
-# 使用 uv 安装
 uv pip install -e .
 ```
 
 ## 配置
 
-1. 复制配置模板：
 ```bash
 cp .env.example .env
+# 编辑 .env 填入 API Key
 ```
-
-2. 编辑 `.env` 填入 API Key（根据你的接口类型选择）
-   - OpenAI 兼容接口（OpenAI, SiliconFlow, TogetherAI 等）：`OPENAI_API_KEY`
-   - Anthropic 兼容接口：`ANTHROPIC_API_KEY`
-
-3. 可选：编辑 `config.yaml` 调整配置
 
 ## 使用方法
 
-### 生成单篇论文摘要
+### 生成摘要
 
 ```bash
-python -m src.cli generate 2602.06154
-python -m src.cli generate 2602.06154 --no-download
-python -m src.cli generate 2602.06154 --force
-```
-
-### 批量处理
-
-```bash
-python -m src.cli batch papers.txt -o ./summaries
+paper-cli generate 2602.06154
+paper-cli generate 2602.06154 --no-download  # 跳过下载，直接用缓存
+paper-cli generate 2602.06154 --force        # 强制重新生成
 ```
 
 ### 查看配置
 
 ```bash
-python -m src.cli config-show
+paper-cli config-show
 ```
+
+### 切换模板模式
+
+编辑 `config.yaml`：
+
+```yaml
+summary:
+  # 模板选择
+  template: "academic_summary.md.j2"     # 传统学术摘要
+  # template: "structured_analysis.md.j2"  # 结构化分析（含可信度评估）
+
+  # 生成模式
+  #   - full:      完整模式（Kimi + PDF，单次请求）
+  #   - lightweight: 轻量模式（只使用 Kimi 摘要，极简输出）
+  #   - two_phase: 两阶段模式（Phase1 生成框架，Phase2 PDF 增强）
+  mode: "two_phase"
+```
+
+## 模板说明
+
+| 模板文件 | 说明 |
+|---------|------|
+| `academic_summary.md.j2` | 传统学术摘要（研究背景 → 方法 → 贡献与结果 → 结论） |
+| `structured_analysis.md.j2` | 结构化分析（可信度、重要性、端侧价值评估） |
+| `lightweight_summary.md.j2` | 极速摘要（150字以内，极简输出） |
+
+### 两阶段模式
+
+```
+Phase 1: 用 Kimi 摘要生成核心框架（轻量请求）
+   ↓
+Phase 2: 用 PDF 内容增强框架（详细请求）
+```
+
+适用于论文信息量大、需要 PDF 增强的场景，避免单次请求上下文过长。
 
 ## 目录结构
 
 ```
 paper-summary/
 ├── config.yaml          # 主配置文件
-├── .env                 # API密钥 (需手动创建)
+├── .env                 # API密钥
+├── templates/           # 模板目录（外置 .j2 文件）
+│   ├── academic_summary.md.j2
+│   ├── academic_summary_phase1.md.j2
+│   ├── academic_summary_phase2.md.j2
+│   ├── lightweight_summary.md.j2
+│   ├── structured_analysis.md.j2
+│   └── ...
 ├── src/
 │   ├── cli.py          # 命令行入口
 │   ├── config.py       # 配置加载
@@ -72,28 +101,33 @@ paper-summary/
     └── comments/      # 本地评论
 ```
 
-## 配置文件说明
+## 自定义模板
 
-`config.yaml` 支持以下配置：
+在 `templates/` 目录添加 `.j2` 文件，然后在 `config.yaml` 中指定即可。
 
-```yaml
-api:
-  provider: "siliconflow"  # 或 "openai", "anthropic"
-  siliconflow:
-    base_url: "https://api.siliconflow.cn/v1"
-    model: "deepseek-ai/DeepSeek-V3.2"
-    vl_model: "Qwen/Qwen2-VL-7B-Instruct"
-  anthropic:
-    base_url: "https://api.minimaxi.com/anthropic/v1"
-    model: "MiniMax-M2.1"
-  openai:
-    base_url: "https://api.openai.com/v1"
-    model: "gpt-4o"
+### 可用变量
+
+```jinja2
+{{ paper_id }}       # arXiv ID
+{{ title }}          # 论文标题
+{{ authors }}        # 作者
+{{ original_abstract }}  # 原文摘要
+{{ kimi_summary }}   # Kimi 生成的摘要
+{{ pdf_summary }}    # 本地 PDF 提取内容
+{{ local_comment }}  # 本地评论
+```
+
+### 两阶段模板变量
+
+Phase2 模板额外支持：
+
+```jinja2
+{{ phase1_output }}  # Phase1 生成的框架内容
 ```
 
 ## 本地评论
 
-在 `data/comments/` 目录下添加 `{paper_id}.md` 文件，可注入自定义评论。
+在 `data/comments/{paper_id}.md` 添加评论，会自动注入摘要。
 
 示例：`data/comments/2602.06154.md`
 
