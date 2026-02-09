@@ -47,6 +47,17 @@ def generate(
 
     except Exception as e:
         typer.secho(f"错误: {e}", fg=typer.colors.RED)
+        # 如果是可重试的错误，给用户建议
+        if (
+            "ConnectionError" in str(e)
+            or "timeout" in str(e).lower()
+            or "502" in str(e)
+            or "SSL" in str(e)
+        ):
+            typer.secho(
+                "建议: 网络不稳定，可使用 --no-download 跳过下载",
+                fg=typer.colors.YELLOW,
+            )
         sys.exit(1)
 
 

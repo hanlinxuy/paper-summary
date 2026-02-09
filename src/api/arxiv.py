@@ -7,6 +7,12 @@ from typing import Optional, Dict
 from xml.etree import ElementTree as ET
 
 import requests
+from tenacity import (
+    retry,
+    stop_after_attempt,
+    wait_exponential,
+    retry_if_exception_type,
+)
 
 from ..config import get_config
 
@@ -33,6 +39,13 @@ class ArxivPaper:
         return ", ".join(self.subjects[:3])
 
 
+@retry(
+    stop=stop_after_attempt(5),
+    wait=wait_exponential(multiplier=2, min=5, max=30),
+    retry=retry_if_exception_type(
+        (requests.ConnectionError, requests.Timeout, requests.HTTPError)
+    ),
+)
 def fetch_arxiv_metadata(paper_id: str) -> ArxivPaper:
     """获取arXiv论文元数据"""
     config = get_config()
@@ -103,6 +116,13 @@ def fetch_arxiv_metadata(paper_id: str) -> ArxivPaper:
     )
 
 
+@retry(
+    stop=stop_after_attempt(3),
+    wait=wait_exponential(multiplier=2, min=5, max=60),
+    retry=retry_if_exception_type(
+        (requests.ConnectionError, requests.Timeout, requests.HTTPError)
+    ),
+)
 def download_arxiv_pdf(paper_id: str, save_path: str) -> str:
     """下载arXiv PDF"""
     config = get_config()
