@@ -75,6 +75,23 @@ summary:
 | `lightweight_summary.md.j2` | 极速摘要（150字以内，极简输出） |
 | `ppt_slide.md.j2` | PPT Slide（1-2页精简演示稿，左文右图布局） |
 
+### 导出为 PPTX
+
+使用 `--pptx` 参数导出为 PowerPoint 格式（需要使用 `ppt_slide` 模板）：
+
+```bash
+# 设置模板为 ppt_slide.md.j2
+# 编辑 config.yaml: template: "ppt_slide.md.j2"
+
+# 生成并导出 PPTX
+paper-cli generate 2602.06154 --pptx
+
+# 指定输出目录
+paper-cli generate 2602.06154 --pptx --pptx-dir ./my_slides
+```
+
+输出文件：`./slides/{paper_id}_slide.pptx`
+
 ### 两阶段模式
 
 ```

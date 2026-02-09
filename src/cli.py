@@ -7,6 +7,7 @@ from pathlib import Path
 import typer
 
 from .config import get_config
+from .exporter.pptx import export_to_pptx
 from .processor.summary_gen import generate_summary
 
 app = typer.Typer(name="paper-summary", help="论文摘要生成器")
@@ -21,6 +22,10 @@ def generate(
     comment: list[str] = typer.Option(
         [], "--comment", "-c", help="添加评论（可多次使用，会与文件评论合并）"
     ),
+    pptx: bool = typer.Option(
+        False, "--pptx", help="同时导出为PPTX（需要使用ppt_slide模板）"
+    ),
+    pptx_dir: str = typer.Option("./slides", "--pptx-dir", help="PPTX输出目录"),
     api_key: str = typer.Option("", "--api-key", "-k", help="API密钥"),
 ):
     """生成论文摘要"""
@@ -48,6 +53,28 @@ def generate(
         typer.echo("-" * 50)
         typer.echo(summary)
         typer.echo("-" * 50)
+
+        # 导出 PPTX
+        if pptx:
+            # 需要获取论文标题和作者
+            from .api.arxiv import fetch_arxiv_metadata
+
+            try:
+                arxiv_data = fetch_arxiv_metadata(paper_id)
+                title = arxiv_data.title
+                authors = arxiv_data.authors
+            except Exception:
+                title = paper_id
+                authors = ""
+
+            pptx_path = export_to_pptx(
+                markdown_content=summary,
+                paper_id=paper_id,
+                title=title,
+                authors=authors,
+                output_dir=pptx_dir,
+            )
+            typer.secho(f"\nPPTX已导出: {pptx_path}", fg=typer.colors.GREEN)
 
     except Exception as e:
         typer.secho(f"错误: {e}", fg=typer.colors.RED)
