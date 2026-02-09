@@ -1,0 +1,29 @@
+[project]
+name = "paper-summary"
+version = "0.1.0"
+description = "论文摘要生成器 - 支持混合API服务商"
+requires-python = ">=3.11"
+dependencies = [
+    "requests>=2.31.0",
+    "beautifulsoup4>=4.12.0",
+    "lxml>=4.9.0",
+    "python-dotenv>=1.0.0",
+    "pydantic>=2.5.0",
+    "jinja2>=3.1.0",
+    "openai>=1.12.0",
+    "PyPDF2>=3.0.0",
+    "tenacity>=8.2.0",
+    "tqdm>=4.66.0",
+    "typer>=0.9.0",
+    "pyyaml>=6.0.0",
+]
+
+[project.scripts]
+paper-cli = "src.cli:main"
+
+[build-system]
+requires = ["setuptools>=69.0.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["src*"]

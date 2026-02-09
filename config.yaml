@@ -1,0 +1,64 @@
+# 论文摘要生成器配置文件
+
+# API配置（按功能区分服务商）
+api:
+  # 文本生成配置
+  text:
+    provider: "siliconflow"  # openai / anthropic / siliconflow
+    base_url: "https://api.siliconFlow.cn/v1"
+    model: "deepseek-ai/DeepSeek-V3.2"
+    timeout: 120
+  
+  # 图像/VL分析配置
+  vl:
+    provider: "siliconflow"  # openai / anthropic / siliconflow
+    base_url: "https://api.siliconFlow.cn/v1"
+    model: "Qwen/Qwen2-VL-7B-Instruct"
+    timeout: 120
+  
+  # API密钥 (建议使用环境变量覆盖)
+  api_key: ""
+
+# arXiv配置
+arxiv:
+  api_url: "http://export.arxiv.org/api/query"
+  pdf_url: "https://arxiv.org/pdf/{id}.pdf"
+  user_agent: "PaperSummaryBot/1.0"
+
+# papers.cool配置
+papers_cool:
+  base_url: "https://papers.cool"
+  kimi_endpoint: "/arxiv/kimi"
+  timeout: 60
+
+# 路径配置
+paths:
+  cache_dir: "./cache"
+  pdf_dir: "./cache/pdfs"
+  summaries_dir: "./cache/summaries"
+  logs_dir: "./cache/logs"
+  comments_dir: "./data/comments"
+  templates_dir: "./templates"
+
+# PDF处理配置
+pdf:
+  # 提取PDF文字时的最大页数 (0表示不限制)
+  max_pages: 0
+  # 提取的文本长度限制
+  max_chars: 50000
+
+# 摘要生成配置
+summary:
+  # Prompt模板文件
+  template: "academic_summary.md.j2"
+  # 温度参数
+  temperature: 0.3
+  # 最大Token数
+  max_tokens: 4096
+  # 重试次数
+  max_retries: 3
+
+# 日志配置
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
