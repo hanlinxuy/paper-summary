@@ -21,6 +21,7 @@ class SummaryGenerator:
         download: bool = True,
         force: bool = False,
         use_pdf_llm: bool = True,
+        temp_comments: list[str] | None = None,
     ) -> str:
         """生成论文摘要"""
         data = await collect_paper_data(
@@ -43,19 +44,31 @@ class SummaryGenerator:
             except Exception as e:
                 print(f"Failed to process PDF: {e}")
 
+        # 合并文件评论和临时评论
+        local_comment = self._merge_comments(data.local_comment, temp_comments or [])
+
         summary = self.client.generate_academic_summary(
             paper_id=data.paper_id,
             title=data.title,
             authors=data.authors,
             original_abstract=data.original_abstract,
             kimi_summary=kimi_content,
-            local_comment=data.local_comment,
+            local_comment=local_comment,
             pdf_summary=pdf_summary,
         )
 
         self._save_summary(data.paper_id, summary)
 
         return summary
+
+    def _merge_comments(self, file_comment: str, temp_comments: list[str]) -> str:
+        """合并文件评论和临时评论"""
+        parts = []
+        if file_comment:
+            parts.append(file_comment)
+        if temp_comments:
+            parts.extend(temp_comments)
+        return "\n\n".join(parts) if parts else ""
 
     def _save_summary(self, paper_id: str, summary: str):
         """保存摘要到文件"""
@@ -69,10 +82,18 @@ class SummaryGenerator:
 
 
 async def generate_summary(
-    paper_id: str, download: bool = True, force: bool = False, use_pdf_llm: bool = True
+    paper_id: str,
+    download: bool = True,
+    force: bool = False,
+    use_pdf_llm: bool = True,
+    temp_comments: list[str] | None = None,
 ) -> str:
     """生成摘要 - 便捷函数"""
     generator = SummaryGenerator()
     return await generator.generate(
-        paper_id=paper_id, download=download, force=force, use_pdf_llm=use_pdf_llm
+        paper_id=paper_id,
+        download=download,
+        force=force,
+        use_pdf_llm=use_pdf_llm,
+        temp_comments=temp_comments,
     )

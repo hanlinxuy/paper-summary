@@ -18,6 +18,9 @@ def generate(
     download: bool = typer.Option(True, "--download/--no-download", help="是否下载PDF"),
     force: bool = typer.Option(False, "--force", "-f", help="强制重新下载"),
     no_pdf_llm: bool = typer.Option(False, "--no-pdf-llm", help="不使用LLM分析PDF"),
+    comment: list[str] = typer.Option(
+        [], "--comment", "-c", help="添加评论（可多次使用，会与文件评论合并）"
+    ),
     api_key: str = typer.Option("", "--api-key", "-k", help="API密钥"),
 ):
     """生成论文摘要"""
@@ -37,6 +40,7 @@ def generate(
                 download=download,
                 force=force,
                 use_pdf_llm=not no_pdf_llm,
+                temp_comments=comment,
             )
         )
 
@@ -65,6 +69,9 @@ def generate(
 def batch(
     input_file: str = typer.Argument(..., help="包含论文ID的文本文件"),
     output_dir: str = typer.Option("./summaries", "--output", "-o", help="输出目录"),
+    comment: list[str] = typer.Option(
+        [], "--comment", "-c", help="添加评论（可多次使用）"
+    ),
     api_key: str = typer.Option("", "--api-key", "-k", help="API密钥"),
 ):
     """批量处理论文ID列表"""
@@ -91,7 +98,7 @@ def batch(
         for pid in ids:
             typer.secho(f"\n处理: {pid}", fg=typer.colors.YELLOW)
             try:
-                summary = await generate_summary(paper_id=pid)
+                summary = await generate_summary(paper_id=pid, temp_comments=comment)
                 (output_path / f"{pid}_summary.md").write_text(summary)
                 typer.secho(f"  ✓ 完成", fg=typer.colors.GREEN)
             except Exception as e:

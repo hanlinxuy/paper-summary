@@ -137,12 +137,34 @@ Phase2 模板额外支持：
 
 ## 本地评论
 
+### 方式1：文件形式（持久化）
+
 在 `data/comments/{paper_id}.md` 添加评论，会自动注入摘要。
 
-示例：`data/comments/2602.06154.md`
+```bash
+# 创建评论文件
+mkdir -p data/comments
+echo "这篇论文的创新点在于..." > data/comments/2602.06154.md
+```
 
-```markdown
-# 我的评论
+### 方式2：CLI 临时评论（一次性）
 
-这篇论文的创新点在于...
+```bash
+# 单条评论
+paper-cli generate 2602.06154 -c "补充：作者在后续工作中修正了..."
+
+# 多条评论
+paper-cli generate 2602.06154 -c "评论1" -c "评论2" -c "评论3"
+```
+
+### 合并规则
+
+文件评论和 CLI 评论会合并，文件评论在前，CLI 评论在后：
+
+```
+[文件评论]
+
+[CLI评论1]
+
+[CLI评论2]
 ```
