@@ -43,18 +43,34 @@ class BrowserManager:
         self._playwright = sync_playwright().start()
 
         # Ignore SSL certificate errors for corporate proxy
+        # Disable GPU, X11, and other GUI-related features for headless/WSL
         self._browser = self._playwright.chromium.launch(
             headless=self.headless,
             args=[
                 "--ignore-certificate-errors",
                 "--disable-setuid-sandbox",
                 "--no-sandbox",
+                "--disable-dev-shm-usage",
+                "--disable-gpu",
+                "--no-first-run",
+                "--no-zygote",
+                "--single-process",
+                "--disable-extensions",
+                "--disable-background-networking",
+                "--disable-sync",
+                "--disable-translate",
+                "--metrics-recording-only",
+                "--mute-audio",
+                "--safebrowsing-disable-auto-update",
+                "--disable-component-update",
+                "--disable-backgrounding-occluded-windows",
+                "--disable-renderer-backgrounding",
             ],
         )
         self._context = self._browser.new_context(
             user_agent=self.user_agent,
             viewport={"width": 1280, "height": 800},
-            ignore_https_errors=True,  # 忽略 HTTPS 错误
+            ignore_https_errors=True,
         )
 
         # Register cleanup on exit
