@@ -41,10 +41,20 @@ class BrowserManager:
 
         logger.info("Initializing Playwright browser...")
         self._playwright = sync_playwright().start()
-        self._browser = self._playwright.chromium.launch(headless=self.headless)
+
+        # Ignore SSL certificate errors for corporate proxy
+        self._browser = self._playwright.chromium.launch(
+            headless=self.headless,
+            args=[
+                "--ignore-certificate-errors",
+                "--disable-setuid-sandbox",
+                "--no-sandbox",
+            ],
+        )
         self._context = self._browser.new_context(
             user_agent=self.user_agent,
             viewport={"width": 1280, "height": 800},
+            ignore_https_errors=True,  # 忽略 HTTPS 错误
         )
 
         # Register cleanup on exit
