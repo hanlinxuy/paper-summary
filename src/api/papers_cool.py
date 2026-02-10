@@ -1,25 +1,34 @@
-"""papers.cool Kimi摘要API客户端"""
+"""papers.cool Kimi摘要API客户端 (支持 Playwright 抓取和 API 回退)"""
 
-import re
+import logging
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Optional
 
 import requests
 from bs4 import BeautifulSoup
 
 from ..config import get_config
+from ..browser.papers_cool import PapersCoolScraper, KimiSummary as BrowserKimiSummary
+from ..browser.manager import get_browser_manager
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
 class KimiSummary:
+    """Kimi生成的论文摘要"""
+
     paper_id: str
-    q1_problem: str
-    q2_related: str
-    q3_method: str
-    q4_experiments: str
-    q5_future: str
-    q6_summary: str
-    raw_html: str
+    summary: str = ""
+    key_points: list[str] = None  # type: ignore[assignment]
+    methods: Optional[str] = None
+    contributions: Optional[str] = None
+    raw_html: str = ""
+
+    def __post_init__(self):
+        if self.key_points is None:
+            self.key_points = []
 
     @property
     def full_content(self) -> str:
@@ -40,9 +49,59 @@ class KimiSummary:
         return "\n\n".join(text_parts)
 
 
-def fetch_kimi_summary(paper_id: str) -> KimiSummary:
-    """获取papers.cool上的Kimi摘要"""
+def _convert_browser_summary(
+    browser_summary: BrowserKimiSummary, raw_html: str = ""
+) -> KimiSummary:
+    """将浏览器抓取的摘要转换为 API 格式"""
+    return KimiSummary(
+        paper_id=browser_summary.paper_id,
+        summary=browser_summary.summary,
+        key_points=browser_summary.key_points,
+        methods=browser_summary.methods,
+        contributions=browser_summary.contributions,
+        raw_html=raw_html,
+    )
+
+
+def fetch_kimi_summary(paper_id: str, use_browser: bool = True) -> KimiSummary:
+    """获取papers.cool上的Kimi摘要 (支持 Playwright 抓取)"""
     config = get_config()
+
+    # Try browser first if enabled
+    if use_browser and config.browser.enabled:
+        try:
+            logger.info(f"Fetching Kimi summary for {paper_id} via Playwright...")
+
+            cache_dir = Path(config.browser.cache_dir)
+            cache_ttl = config.browser.cache_ttl
+            timeout = config.browser.timeout
+
+            browser_manager = get_browser_manager()
+            scraper = PapersCoolScraper(
+                browser_manager=browser_manager,
+                cache_dir=cache_dir,
+                cache_ttl=cache_ttl,
+                timeout=timeout,
+            )
+            browser_summary = scraper.scrape_kimi_summary(paper_id, use_cache=True)
+
+            if browser_summary.summary:
+                logger.info(f"Successfully fetched Kimi summary for {paper_id}")
+                return _convert_browser_summary(browser_summary)
+
+        except Exception as e:
+            logger.warning(f"Playwright fetch failed for {paper_id}: {e}")
+
+    # Flex mode: only fallback to API if explicitly enabled
+    if not config.flex_mode.enabled or not config.flex_mode.papers_cool_api:
+        logger.warning(
+            f"Playwright unavailable for {paper_id} Kimi summary and flex_mode is disabled. "
+            "Skipping API fallback (flex_mode.papers_cool_api=false)."
+        )
+        return KimiSummary(paper_id=paper_id)
+
+    # Fallback to API
+    logger.info(f"Fetching Kimi summary for {paper_id} via API...")
     base_url = config.papers_cool.base_url.rstrip("/")
     endpoint = config.papers_cool.kimi_endpoint
     url = f"{base_url}{endpoint}?paper={paper_id}"
@@ -59,6 +118,7 @@ def fetch_kimi_summary(paper_id: str) -> KimiSummary:
 
     soup = BeautifulSoup(raw_html, "lxml")
 
+    # Try to extract FAQ-style content
     q1 = _extract_q_content(soup, "Q1")
     q2 = _extract_q_content(soup, "Q2")
     q3 = _extract_q_content(soup, "Q3")
@@ -66,14 +126,36 @@ def fetch_kimi_summary(paper_id: str) -> KimiSummary:
     q5 = _extract_q_content(soup, "Q5")
     q6 = _extract_q_content(soup, "Q6")
 
+    # Combine all Q&A into summary
+    summary_parts = []
+    if q1:
+        summary_parts.append(f"问题：{q1}")
+    if q2:
+        summary_parts.append(f"相关工作：{q2}")
+    if q3:
+        summary_parts.append(f"方法：{q3}")
+    if q4:
+        summary_parts.append(f"实验：{q4}")
+    if q5:
+        summary_parts.append(f"未来工作：{q5}")
+    if q6:
+        summary_parts.append(f"总结：{q6}")
+
+    summary = "\n\n".join(summary_parts) if summary_parts else ""
+
+    # Extract key points
+    key_points = []
+    for li in soup.find_all("li"):
+        text = li.get_text(strip=True)
+        if len(text) > 10 and len(text) < 200:
+            key_points.append(text)
+
     return KimiSummary(
         paper_id=paper_id,
-        q1_problem=q1 or "",
-        q2_related=q2 or "",
-        q3_method=q3 or "",
-        q4_experiments=q4 or "",
-        q5_future=q5 or "",
-        q6_summary=q6 or "",
+        summary=summary,
+        key_points=key_points,
+        methods=q3,
+        contributions=None,
         raw_html=raw_html,
     )
 

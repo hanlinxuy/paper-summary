@@ -1,9 +1,9 @@
-"""arXiv API客户端"""
+"""arXiv API客户端 (支持 Playwright 抓取和 API 回退)"""
 
-import re
+import logging
 from dataclasses import dataclass
-from datetime import datetime
-from typing import Optional, Dict
+from pathlib import Path
+from typing import Optional
 from xml.etree import ElementTree as ET
 
 import requests
@@ -15,10 +15,16 @@ from tenacity import (
 )
 
 from ..config import get_config
+from ..browser.arxiv import ArxivScraper, ArxivPaper as BrowserArxivPaper
+from ..browser.manager import get_browser_manager
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
 class ArxivPaper:
+    """arXiv论文元数据"""
+
     id: str
     title: str
     authors: str
@@ -29,6 +35,7 @@ class ArxivPaper:
     subjects: list[str]
     doi: Optional[str] = None
     journal_ref: Optional[str] = None
+    comment: Optional[str] = None
 
     @property
     def arxiv_url(self) -> str:
@@ -39,6 +46,23 @@ class ArxivPaper:
         return ", ".join(self.subjects[:3])
 
 
+def _convert_browser_paper(browser_paper: BrowserArxivPaper) -> ArxivPaper:
+    """将浏览器抓取的 Paper 转换为 API 格式"""
+    return ArxivPaper(
+        id=browser_paper.paper_id,
+        title=browser_paper.title,
+        authors=", ".join(browser_paper.authors),
+        abstract=browser_paper.abstract,
+        published=browser_paper.published_date,
+        updated=browser_paper.published_date,
+        pdf_url=browser_paper.pdf_url,
+        subjects=browser_paper.categories,
+        doi=browser_paper.doi,
+        journal_ref=None,
+        comment=browser_paper.comment,
+    )
+
+
 @retry(
     stop=stop_after_attempt(5),
     wait=wait_exponential(multiplier=2, min=5, max=30),
@@ -46,11 +70,45 @@ class ArxivPaper:
         (requests.ConnectionError, requests.Timeout, requests.HTTPError)
     ),
 )
-def fetch_arxiv_metadata(paper_id: str) -> ArxivPaper:
-    """获取arXiv论文元数据"""
+def fetch_arxiv_metadata(paper_id: str, use_browser: bool = True) -> ArxivPaper:
+    """获取arXiv论文元数据 (支持 Playwright 抓取)"""
     config = get_config()
-    url = f"{config.arxiv.api_url}?id_list={paper_id}"
 
+    # Try browser first if enabled
+    if use_browser and config.browser.enabled:
+        try:
+            logger.info(f"Fetching arXiv paper {paper_id} via Playwright...")
+
+            cache_dir = Path(config.browser.cache_dir)
+            cache_ttl = config.browser.cache_ttl
+            timeout = config.browser.timeout
+
+            browser_manager = get_browser_manager()
+            scraper = ArxivScraper(
+                browser_manager=browser_manager,
+                cache_dir=cache_dir,
+                cache_ttl=cache_ttl,
+                timeout=timeout,
+            )
+            browser_paper = scraper.scrape_paper(paper_id, use_cache=True)
+
+            if browser_paper.title:
+                logger.info(f"Successfully fetched {paper_id} via Playwright")
+                return _convert_browser_paper(browser_paper)
+
+        except Exception as e:
+            logger.warning(f"Playwright fetch failed: {e}")
+
+    # Flex mode: only fallback to API if explicitly enabled
+    if not config.flex_mode.enabled or not config.flex_mode.arxiv_api:
+        raise ConnectionError(
+            f"Playwright unavailable for {paper_id} and flex_mode is disabled. "
+            "Set flex_mode.enabled=true in config.yaml to allow API fallback."
+        )
+
+    # Fallback to API
+    logger.info(f"Fetching arXiv paper {paper_id} via API...")
+    url = f"{config.arxiv.api_url}?id_list={paper_id}"
     headers = {"User-Agent": config.arxiv.user_agent}
 
     response = requests.get(url, headers=headers, timeout=30)

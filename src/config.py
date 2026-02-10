@@ -15,7 +15,7 @@ class TextAPISettings(BaseModel):
     """文本生成API配置"""
 
     provider: str = "siliconflow"
-    base_url: str = "https://api.siliconflow.cn/v1"
+    base_url: str = "https://api.siliconFlow.cn/v1"
     model: str = "deepseek-ai/DeepSeek-V3.2"
     timeout: int = 120
 
@@ -35,6 +35,28 @@ class APISettings(BaseModel):
     text: TextAPISettings = TextAPISettings()
     vl: VLAPISettings = VLAPISettings()
     api_key: Optional[str] = ""
+
+
+class BrowserSettings(BaseModel):
+    """Playwright/Browser配置"""
+
+    enabled: bool = True
+    headless: bool = True
+    timeout: int = 30000
+    user_agent: str = (
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"
+    )
+    cache_enabled: bool = True
+    cache_ttl: int = 86400
+    cache_dir: str = "./cache/html"
+
+
+class FlexModeSettings(BaseModel):
+    """灵活模式配置"""
+
+    enabled: bool = False  # 默认禁用回退，只有 True 时才允许 API 回退
+    arxiv_api: bool = True
+    papers_cool_api: bool = False
 
 
 class ArxivSettings(BaseModel):
@@ -81,6 +103,8 @@ class LoggingSettings(BaseModel):
 
 class Config(BaseModel):
     api: APISettings = APISettings()
+    browser: BrowserSettings = BrowserSettings()
+    flex_mode: FlexModeSettings = FlexModeSettings()
     arxiv: ArxivSettings = ArxivSettings()
     papers_cool: PapersCoolSettings = PapersCoolSettings()
     paths: PathsSettings = PathsSettings()

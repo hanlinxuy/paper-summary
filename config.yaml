@@ -19,17 +19,33 @@ api:
   # API密钥从环境变量自动读取: {PROVIDER}_API_KEY
   # 例如: SILICONFLOW_API_KEY, OPENAI_API_KEY, ANTHROPIC_API_KEY
 
-# arXiv配置
+# Browser/Playwright 配置
+browser:
+  enabled: true                    # 启用 Playwright 抓取
+  headless: true                   # 无头模式（不显示浏览器窗口）
+  timeout: 30000                   # 页面加载超时 (ms)
+  user_agent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"
+  cache_enabled: true              # 启用抓取结果缓存
+  cache_ttl: 86400                 # 缓存有效期 (秒，24小时)
+  cache_dir: "./cache/html"        # HTML 缓存目录
+
+# arXiv 配置
 arxiv:
   api_url: "http://export.arxiv.org/api/query"
   pdf_url: "https://arxiv.org/pdf/{id}.pdf"
   user_agent: "PaperSummaryBot/1.0"
 
-# papers.cool配置
+# papers.cool 配置
 papers_cool:
   base_url: "https://papers.cool"
   kimi_endpoint: "/arxiv/kimi"
   timeout: 60
+
+# 降级配置：当 Playwright 不可用时的回退策略
+flex_mode:
+  enabled: false                 # 默认禁用回退，只有 true 时才允许 API 回退
+  arxiv_api: true                # arXiv API 不可用时回退
+  papers_cool_api: false         # papers.cool API 不可用时回退（默认禁用）
 
 # 路径配置
 paths:
