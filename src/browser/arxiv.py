@@ -181,7 +181,8 @@ def create_arxiv_scraper(
     cache_dir: Optional[Path] = None,
     cache_ttl: int = 86400,
     timeout: int = 30000,
+    proxy: str = "",
 ) -> ArxivScraper:
     """Factory function to create ArxivScraper instance"""
-    manager = BrowserManager()
+    manager = BrowserManager(proxy=proxy)
     return ArxivScraper(manager, cache_dir, cache_ttl, timeout)

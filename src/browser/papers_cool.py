@@ -209,7 +209,8 @@ def create_papers_cool_scraper(
     cache_dir: Optional[Path] = None,
     cache_ttl: int = 86400,
     timeout: int = 30000,
+    proxy: str = "",
 ) -> PapersCoolScraper:
     """Factory function to create PapersCoolScraper instance"""
-    manager = BrowserManager()
+    manager = BrowserManager(proxy=proxy)
     return PapersCoolScraper(manager, cache_dir, cache_ttl, timeout)

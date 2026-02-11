@@ -4,7 +4,7 @@ import os
 from pathlib import Path
 from typing import Any, Dict, Optional
 import yaml
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 from dotenv import load_dotenv
 
@@ -49,6 +49,7 @@ class BrowserSettings(BaseModel):
     cache_enabled: bool = True
     cache_ttl: int = 86400
     cache_dir: str = "./cache/html"
+    proxy: str = ""  # 代理地址，例如: "http://127.0.0.1:7890"
 
 
 class FlexModeSettings(BaseModel):
@@ -139,6 +140,10 @@ def load_config(config_path: Optional[Path] = None) -> Config:
         vl_key = get_api_key(config.api.vl.provider)
         if vl_key:
             config.api.api_key = vl_key
+
+    # 从环境变量读取代理配置（支持 HTTP_PROXY, HTTPS_PROXY）
+    if not config.browser.proxy:
+        config.browser.proxy = os.getenv("HTTPS_PROXY") or os.getenv("HTTP_PROXY") or ""
 
     return config
 

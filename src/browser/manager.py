@@ -21,10 +21,12 @@ class BrowserManager:
         headless: bool = True,
         timeout: int = 30000,
         user_agent: str = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
+        proxy: str = "",
     ):
         self.headless = headless
         self.timeout = timeout
         self.user_agent = user_agent
+        self.proxy = proxy
         self._playwright = None
         self._browser: Optional[Browser] = None
         self._context: Optional[BrowserContext] = None
@@ -44,9 +46,10 @@ class BrowserManager:
 
         # Ignore SSL certificate errors for corporate proxy
         # Disable GPU, X11, and other GUI-related features for headless/WSL
-        self._browser = self._playwright.chromium.launch(
-            headless=self.headless,
-            args=[
+
+        launch_kwargs = {
+            "headless": self.headless,
+            "args": [
                 "--ignore-certificate-errors",
                 "--disable-setuid-sandbox",
                 "--no-sandbox",
@@ -66,7 +69,13 @@ class BrowserManager:
                 "--disable-backgrounding-occluded-windows",
                 "--disable-renderer-backgrounding",
             ],
-        )
+        }
+
+        # Add proxy if configured
+        if self.proxy:
+            launch_kwargs["proxy"] = {"server": self.proxy}
+
+        self._browser = self._playwright.chromium.launch(**launch_kwargs)
         self._context = self._browser.new_context(
             user_agent=self.user_agent,
             viewport={"width": 1280, "height": 800},
@@ -125,9 +134,17 @@ class BrowserManager:
         pass
 
 
-def get_browser_manager() -> BrowserManager:
+def get_browser_manager(
+    headless: bool = True,
+    timeout: int = 30000,
+    proxy: str = "",
+) -> BrowserManager:
     """Get or create global browser manager instance"""
     global _browser_manager
     if _browser_manager is None:
-        _browser_manager = BrowserManager()
+        _browser_manager = BrowserManager(
+            headless=headless,
+            timeout=timeout,
+            proxy=proxy,
+        )
     return _browser_manager

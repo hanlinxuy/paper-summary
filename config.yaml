@@ -26,8 +26,9 @@ browser:
   timeout: 30000                   # 页面加载超时 (ms)
   user_agent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"
   cache_enabled: true              # 启用抓取结果缓存
-  cache_ttl: 86400                 # 缓存有效期 (秒，24小时)
+  cache_ttl: 86400                 # 缓存有效期 (秒，24小时）
   cache_dir: "./cache/html"        # HTML 缓存目录
+  proxy: ""                        # 代理地址，例如: "http://127.0.0.1:7890"
 
 # arXiv 配置
 arxiv:
